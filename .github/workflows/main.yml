@@ -38,6 +38,6 @@ jobs:
     - name: Run Migrations
       run: make migrate-up
       env:
-        DB_URL: postgres://geo:geoengine_secret@localhost:5432/geoengine?sslmode=disable
+        DB_URL: postgres://geo:secretpassword@localhost:5432/geoengine?sslmode=disable
     - name: Test Backend
       run: make test-backend
