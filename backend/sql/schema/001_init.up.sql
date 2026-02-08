@@ -3,12 +3,6 @@ CREATE EXTENSION IF NOT EXISTS postgis_raster;
 CREATE EXTENSION IF NOT EXISTS h3;
 CREATE EXTENSION IF NOT EXISTS h3_postgis;
 
-CREATE OR REPLACE FUNCTION h3_lat_lng_to_cell(geom geometry, res integer)
-RETURNS h3index AS $$ SELECT 0::h3index $$ LANGUAGE SQL;
-
-CREATE OR REPLACE FUNCTION h3_lat_lng_to_cell(lat float, lng float, res integer)
-RETURNS h3index AS $$ SELECT 0::h3index $$ LANGUAGE SQL;
-
 CREATE TABLE locations (
                            id UUID PRIMARY KEY,
                            device_id VARCHAR(255) NOT NULL,
