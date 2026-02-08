@@ -5,14 +5,14 @@ services:
     container_name: geo-engine-core
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.prod
     ports:
       - "8080:8080"
-    volumes:
-      - ./backend:/app:Z
+    #volumes:
+    # - ./backend:/app:Z
     environment:
       - PORT=8080
-      - ENV=development
+      - ENV=production
     networks:
       - geo-net
 
