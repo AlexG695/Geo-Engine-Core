@@ -52,7 +52,6 @@ services:
         condition: service_healthy
 
   dashboard:
-    image: node:22-alpine
     container_name: geo-dashboard
     build:
       context: ./frontend
