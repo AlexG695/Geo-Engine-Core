@@ -1,11 +1,14 @@
-backend/tmp/
-backend/bin/
-backend/main
 
-frontend/node_modules/
-frontend/dist/
-
-redis_data/
-postgres_data/
+/backend/bin/
+/backend/tmp/
+/backend/vendor/
+/frontend/node_modules/
+/frontend/dist/
 
 .env
+*.env
+.idea/
+.vscode/
+.DS_Store
+coverage/
+*.log
