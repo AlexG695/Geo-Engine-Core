@@ -35,7 +35,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			h.Clients[client] = true
 			h.mu.Unlock()
-			log.Println("🔌 Cliente conectado. Total:", len(h.Clients))
+			log.Println("Cliente conectado. Total:", len(h.Clients))
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
@@ -44,7 +44,7 @@ func (h *Hub) Run() {
 				client.Close()
 			}
 			h.mu.Unlock()
-			log.Println("❌ Cliente desconectado. Total:", len(h.Clients))
+			log.Println("Cliente desconectado. Total:", len(h.Clients))
 
 		case message := <-h.Broadcast:
 			h.mu.Lock()

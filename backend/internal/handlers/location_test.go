@@ -48,7 +48,7 @@ func TestGeofenceLifecycle(t *testing.T) {
 		StGeomfromgeojson: geojson,
 	})
 	require.NoError(t, err)
-	t.Logf("✅ Zona creada: %s", geofence.Name)
+	t.Logf("Zona creada: %s", geofence.Name)
 
 	defer func() {
 		_ = queries.DeleteGeofence(ctx, geofence.ID)
@@ -103,7 +103,7 @@ func TestConcurrentEvents(t *testing.T) {
 	workers := 20
 	deviceID := "test-device-concurrent"
 
-	t.Logf("🚀 Iniciando %d escrituras concurrentes...", workers)
+	t.Logf("Iniciando %d escrituras concurrentes...", workers)
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
@@ -119,5 +119,5 @@ func TestConcurrentEvents(t *testing.T) {
 	}
 
 	wg.Wait()
-	t.Log("✅ Todas las goroutines terminaron sin errores")
+	t.Log("Todas las goroutines terminaron sin errores")
 }

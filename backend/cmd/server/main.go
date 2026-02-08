@@ -36,16 +36,16 @@ func main() {
 	if err := conn.Ping(); err != nil {
 		sugar.Fatal("BD no responde:", err)
 	}
-	sugar.Info("✅ Conectado a Postgres + PostGIS")
+	sugar.Info("Conectado a Postgres + PostGIS")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: "geo-redis:6379",
 	})
 
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
-		sugar.Warn("⚠️ Redis no responde (¿Está corriendo Docker?):", err)
+		sugar.Warn("Redis no responde (¿Está corriendo Docker?):", err)
 	} else {
-		sugar.Info("🚀 Conectado a Redis")
+		sugar.Info("Conectado a Redis")
 	}
 
 	wsHub := ws.NewHub()
@@ -58,7 +58,7 @@ func main() {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -69,11 +69,11 @@ func main() {
 	locationHandler.RegisterRoutes(r)
 
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "online", "version": "1.0.1-clean"})
+		c.JSON(200, gin.H{"status": "online", "version": "1.0.0"})
 	})
 
 	r.GET("/ws", locationHandler.ServeWS)
 
-	sugar.Info("🚀 Geo-Engine iniciando en puerto 8080")
+	sugar.Info("Geo-Engine iniciando en puerto 8080")
 	r.Run(":8080")
 }

@@ -102,7 +102,7 @@ func (h *LocationHandler) CreateLocation(c *gin.Context) {
 	}).Err()
 
 	if errRedis != nil {
-		h.logger.Warnw("⚠️ Falló actualización en Redis", "error", errRedis)
+		h.logger.Warnw("Falló actualización en Redis", "error", errRedis)
 	}
 
 	updatePayload := gin.H{
@@ -218,13 +218,12 @@ func (h *LocationHandler) sendGeofenceEvent(deviceID, zoneName, eventType string
 		"timestamp": time.Now(),
 	}
 	h.hub.SendUpdate(event)
-	h.logger.Infow("🚨 GEOFENCE CHANGE", "device", deviceID, "event", eventType, "zone", zoneName)
+	h.logger.Infow("GEOFENCE CHANGE", "device", deviceID, "event", eventType, "zone", zoneName)
 }
 
 func (h *LocationHandler) checkGeofences(deviceID string, lat, lng float64) {
 	ctx := context.Background()
 
-	// 1. Obtener zonas ACTUALES (PostGIS)
 	currentZones, err := h.queries.FindGeofencesContainingPoint(ctx, database.FindGeofencesContainingPointParams{
 		StMakepoint:   lng,
 		StMakepoint_2: lat,
@@ -294,7 +293,6 @@ func (h *LocationHandler) checkGeofences(deviceID string, lat, lng float64) {
 			idStr := parts[0]
 			name := parts[1]
 
-			// 2. Parseamos a UUID
 			zoneID, _ := uuid.Parse(idStr)
 			h.sendGeofenceEvent(deviceID, name, "ENTER")
 			go func(zid uuid.UUID, did string) {
