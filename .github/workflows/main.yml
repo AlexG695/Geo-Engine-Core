@@ -18,6 +18,9 @@ jobs:
       with:
         go-version: '1.21'
 
+    - name: Debug Docker Config
+      run: docker compose config
+
     - name: Start Custom Database
       run: |
         docker compose up -d --build db 
