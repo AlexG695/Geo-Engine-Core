@@ -62,10 +62,10 @@ services:
         - VITE_WS_URL
     working_dir: /app
     ports:
-      - "5173:5173"
+      - "5173:80"
     #volumes:
     #  - ./frontend:/app:Z
-    command: npm run dev -- --host
+    #command: npm run dev -- --host
     environment:
       - VITE_API_URL=http://localhost:8080
       - VITE_WS_URL=ws://localhost:8080/ws
