@@ -54,15 +54,26 @@ services:
   dashboard:
     image: node:22-alpine
     container_name: geo-dashboard
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    args:
+      - VITE_API_URL
+      - VITE_WS_URL
     working_dir: /app
     ports:
       - "5173:5173"
-    volumes:
-      - ./frontend:/app:Z
+    #volumes:
+    #  - ./frontend:/app:Z
     command: npm run dev -- --host
     environment:
       - VITE_API_URL=http://localhost:8080
       - VITE_WS_URL=ws://localhost:8080/ws
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - geo-net
 
   redis:
     image: redis:7-alpine
