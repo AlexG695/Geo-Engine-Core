@@ -20,11 +20,11 @@ jobs:
 
     - name: Start Custom Database
       run: |
-        docker-compose up -d --build db 
+        docker compose up -d --build db 
         
         echo "Waiting for Database to be ready..."
         sleep 10
-        until docker exec $(docker-compose ps -q db) pg_isready -U geo; do
+        until docker exec geo-postgres pg_isready -U geo; do
           echo "Waiting for DB..."
           sleep 2
         done
