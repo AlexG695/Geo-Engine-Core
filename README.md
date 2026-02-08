@@ -47,8 +47,8 @@
 The easiest way to run the full stack is using Docker Compose.
 
 1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/AlexG695/geo-engine-core.git](https://github.com/AlexG695/geo-engine-core.git)
+```bash
+   git clone https://github.com/AlexG695/geo-engine-core.git
    cd geo-engine-core
 
 ```
