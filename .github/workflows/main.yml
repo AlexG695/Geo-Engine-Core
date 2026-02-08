@@ -10,33 +10,31 @@ jobs:
   test-backend:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgis/postgis:15-3.3
-        env:
-          POSTGRES_USER: geo
-          POSTGRES_PASSWORD: geoengine_secret
-          POSTGRES_DB: geoengine
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.22'
+        go-version: '1.21'
+
+    - name: Start Custom Database
+      run: |
+        docker-compose up -d --build db 
+        
+        echo "Waiting for Database to be ready..."
+        sleep 10
+        until docker exec $(docker-compose ps -q db) pg_isready -U geo; do
+          echo "Waiting for DB..."
+          sleep 2
+        done
+        echo "Database is ready!"
 
     - name: Install golang-migrate
       run: |
         curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
         sudo mv migrate /usr/local/bin/
+
     - name: Run Migrations
       run: make migrate-up
       env:
