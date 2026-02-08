@@ -3,7 +3,7 @@
 # ==============================================================================
 
 # Configuration Variables
-DB_URL=postgres://geo:geoengine_secret@localhost:5432/geoengine?sslmode=disable
+DB_URL=postgres://geo:secretpassword@localhost:5432/geoengine?sslmode=disable
 MIGRATION_PATH=backend/sql/schema
 
 .PHONY: help up down logs test test-backend test-frontend sqlc migrate-up migrate-down run-backend run-frontend install

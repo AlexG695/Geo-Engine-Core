@@ -7,16 +7,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	_ "github.com/lib/pq" // Driver de Postgres
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/AlexG695/geo-engine-core/internal/database"
-	// Ajusta este import según tu nombre de módulo real si es diferente
-	// "github.com/AlexG695/geo-engine-core/internal/handlers"
 )
 
-// AJUSTA ESTO: Debe coincidir con tu docker-compose o entorno local
 const testDbConn = "postgres://geo:secretpassword@localhost:5432/geoengine?sslmode=disable"
 
 func setupTestDB(t *testing.T) (*sql.DB, *database.Queries) {
@@ -34,8 +31,6 @@ func TestGeofenceLifecycle(t *testing.T) {
 	defer db.Close()
 	ctx := context.Background()
 
-	// 1. PREPARACIÓN: Crear un Polígono de Prueba
-	// Un cuadrado pequeño cerca de CDMX
 	name := "Test Zone " + uuid.New().String()
 	geojson := `{
 		"type": "Polygon",
@@ -48,7 +43,6 @@ func TestGeofenceLifecycle(t *testing.T) {
 		]]
 	}`
 
-	// Crear zona
 	geofence, err := queries.CreateGeofence(ctx, database.CreateGeofenceParams{
 		Name:              name,
 		StGeomfromgeojson: geojson,
@@ -56,12 +50,9 @@ func TestGeofenceLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("✅ Zona creada: %s", geofence.Name)
 
-	// Limpieza al final
 	defer func() {
 		_ = queries.DeleteGeofence(ctx, geofence.ID)
 	}()
-
-	// 2. TEST: Punto DENTRO (-99.167, 19.427 está al centro)
 	zonesInside, err := queries.FindGeofencesContainingPoint(ctx, database.FindGeofencesContainingPointParams{
 		StMakepoint:   -99.167,
 		StMakepoint_2: 19.427,
@@ -77,7 +68,6 @@ func TestGeofenceLifecycle(t *testing.T) {
 	}
 	assert.True(t, found, "El punto debería estar DENTRO de la zona")
 
-	// 3. TEST: Punto FUERA (0, 0)
 	zonesOutside, err := queries.FindGeofencesContainingPoint(ctx, database.FindGeofencesContainingPointParams{
 		StMakepoint:   0,
 		StMakepoint_2: 0,
@@ -95,12 +85,9 @@ func TestGeofenceLifecycle(t *testing.T) {
 }
 
 func TestConcurrentEvents(t *testing.T) {
-	// Prueba de estrés: 20 goroutines escribiendo logs al mismo tiempo
 	db, queries := setupTestDB(t)
 	defer db.Close()
 	ctx := context.Background()
-
-	// 1. Necesitamos una zona válida para la Foreign Key
 	geoName := "Concurrent Test Zone"
 	geoJson := `{"type": "Polygon", "coordinates": [[[-100, 20], [-100.1, 20], [-100.1, 20.1], [-100, 20.1], [-100, 20]]]}`
 
@@ -110,12 +97,10 @@ func TestConcurrentEvents(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Limpieza
 	defer queries.DeleteGeofence(ctx, zone.ID)
 
-	// 2. Ejecutar concurrencia
 	var wg sync.WaitGroup
-	workers := 20 // Simulamos 20 eventos simultáneos
+	workers := 20
 	deviceID := "test-device-concurrent"
 
 	t.Logf("🚀 Iniciando %d escrituras concurrentes...", workers)
@@ -124,7 +109,6 @@ func TestConcurrentEvents(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// Insertamos en el historial
 			err := queries.LogGeofenceEvent(ctx, database.LogGeofenceEventParams{
 				GeofenceID: zone.ID,
 				DeviceID:   deviceID,
