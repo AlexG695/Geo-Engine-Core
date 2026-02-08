@@ -9,7 +9,11 @@
 
 **Geo Engine Core** is a high-performance, real-time geospatial tracking system. It combines a robust **Golang** backend capable of complex spatial event detection with a modern **React** dashboard for live visualization and dynamic geofence management.
 
-> 🚀 **Live Demo:** [Insert Link or GIF Here]
+## 📸 Dashboard Preview
+
+![Geo Engine Dashboard](./docs/Captura.png)
+
+> *Real-time visualization of geofences and vehicle tracking.*
 
 ---
 

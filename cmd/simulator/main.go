@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// Configuración del Simulador
 const (
 	API_URL     = "http://localhost:8080/location"
 	NUM_DRIVERS = 10
