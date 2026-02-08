@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Polygon, useMapEvents
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { API_BASE_URL, WS_BASE_URL } from './config';
 
 const styles = `
   @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
@@ -16,7 +17,6 @@ const styles = `
   .leaflet-marker-icon.draggable-point { cursor: move !important; }
 `;
 
-// --- ICONOS ---
 const createCarIcon = (heading: number) => {
     return L.divIcon({
         className: 'car-marker-icon', iconSize: [52, 52], iconAnchor: [26, 26], popupAnchor: [0, -26],
@@ -37,13 +37,11 @@ const createCarIcon = (heading: number) => {
 };
 
 const dotIcon = new L.DivIcon({
-    className: 'draggable-point', // Clase CSS para cursor
+    className: 'draggable-point',
     html: '<div style="width: 14px; height: 14px; background-color: #f59e0b; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
     iconSize: [14, 14], iconAnchor: [7, 7],
 });
 
-// --- COMPONENTE DE PUNTO ARRASTRABLE ---
-// Esto permite mover los puntos individuales sin romper la geometría
 const DraggableMarker = ({ position, index, onDrag, onClick }: { position: [number, number], index: number, onDrag: (i: number, lat: number, lng: number) => void, onClick: () => void }) => {
     const markerRef = useRef<L.Marker>(null);
 
@@ -56,17 +54,17 @@ const DraggableMarker = ({ position, index, onDrag, onClick }: { position: [numb
             }
         },
         click(e: any) {
-            L.DomEvent.stopPropagation(e); // ¡CRUCIAL! Evita que el mapa detecte click y agregue otro punto
+            L.DomEvent.stopPropagation(e);
             onClick();
         },
         mousedown(e: any) {
-            L.DomEvent.stopPropagation(e); // Evita conflictos de drag con el mapa
+            L.DomEvent.stopPropagation(e);
         }
     }), [index, onDrag, onClick]);
 
     return (
         <Marker
-            draggable={true} // Hacemos que sea movible
+            draggable={true}
             eventHandlers={eventHandlers}
             position={position}
             icon={dotIcon}
@@ -97,7 +95,6 @@ function App() {
     const [geofences, setGeofences] = useState<any[]>([]);
     const [alerts, setAlerts] = useState<Alert[]>([]);
 
-    // UI States
     const [isDrawing, setIsDrawing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [newPolygon, setNewPolygon] = useState<[number, number][]>([]);
@@ -113,10 +110,9 @@ function App() {
         setTimeout(() => setToast(null), 3000);
     };
 
-    // --- API ---
     const fetchDrivers = async () => {
         try {
-            const res = await axios.get('http://localhost:8080/drivers/nearby', { params: { lat: centerPos[0], lng: centerPos[1], radius: 50000 } });
+            const res = await axios.get(`${API_BASE_URL}/drivers/nearby`, { params: { lat: centerPos[0], lng: centerPos[1], radius: 50000 } });
             setDrivers(res.data.data || []);
         } catch (error) { console.error(error); }
     };
@@ -124,7 +120,7 @@ function App() {
     const fetchRoute = async (deviceId: string) => {
         try {
             setSelectedId(deviceId);
-            const res = await axios.get(`http://localhost:8080/drivers/${deviceId}/route`);
+            const res = await axios.get(`${API_BASE_URL}/drivers/${deviceId}/route`);
             const coords = res.data.coordinates.map((c: number[]) => [c[1], c[0]] as [number, number]);
             setSelectedRoute(coords);
         } catch (e) { setSelectedRoute([]); }
@@ -132,7 +128,7 @@ function App() {
 
     const fetchGeofences = async () => {
         try {
-            const res = await axios.get('http://localhost:8080/geofences');
+            const res = await axios.get(`${API_BASE_URL}/geofences`);
             const parsed = res.data.map((z: any) => ({
                 ...z,
                 coordinates: JSON.parse(z.geojson).coordinates[0].map((c: number[]) => [c[1], c[0]])
@@ -141,9 +137,6 @@ function App() {
         } catch (e) { console.error(e); }
     };
 
-    // --- MANEJO DE GEOMETRÍA ---
-
-    // Actualizar posición de un punto específico al arrastrar
     const handleDragPoint = (index: number, lat: number, lng: number) => {
         setNewPolygon(prev => {
             const updated = [...prev];
@@ -152,7 +145,6 @@ function App() {
         });
     };
 
-    // Eliminar un punto con click (Opcional, útil para limpiar)
     const handlePointClick = (index: number) => {
         if (newPolygon.length <= 3) {
             showToast("Mínimo 3 puntos requeridos", "error");
@@ -177,7 +169,7 @@ function App() {
     const handleModalConfirm = async () => {
         if (modal.type === 'delete' && modal.id) {
             try {
-                await axios.delete(`http://localhost:8080/geofences/${modal.id}`);
+                await axios.delete(`${API_BASE_URL}/geofences/${modal.id}`);
                 showToast("Zona eliminada", "success");
                 setModal({ show: false, type: null });
                 fetchGeofences();
@@ -193,7 +185,7 @@ function App() {
                 }
 
                 if (modal.type === 'create' && !editingId) {
-                    await axios.post('http://localhost:8080/geofences', { name: modalInput, geojson: geojsonPayload });
+                    await axios.post(`${API_BASE_URL}/geofences`, { name: modalInput, geojson: geojsonPayload });
                     showToast("Zona creada", "success");
                     setNewPolygon([]); setIsDrawing(false);
                 } else {
@@ -201,7 +193,7 @@ function App() {
                     const payload: any = { name: modalInput };
                     if (geojsonPayload) payload.geojson = geojsonPayload;
 
-                    await axios.put(`http://localhost:8080/geofences/${idToUpdate}`, payload);
+                    await axios.put(`${API_BASE_URL}/geofences/${idToUpdate}`, payload);
                     showToast("Zona actualizada", "success");
                     setNewPolygon([]); setIsDrawing(false); setEditingId(null);
                 }
@@ -229,7 +221,7 @@ function App() {
 
     useEffect(() => {
         fetchDrivers(); fetchGeofences();
-        const socket = new WebSocket("ws://localhost:8080/ws");
+        const socket = new WebSocket(`${WS_BASE_URL}/ws`);
         socket.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
@@ -258,19 +250,15 @@ function App() {
             <style>{styles}</style>
 
             <MapContainer center={centerPos} zoom={14} style={{ height: '100%', width: '100%' }}>
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO'/>
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
 
                 <MapClickHandler isDrawing={isDrawing} onAddPoint={(p: any) => setNewPolygon(prev => [...prev, p])} onClearSelection={() => { setSelectedRoute([]); setSelectedId(null); }} />
 
-                {/* --- MODO DIBUJO / EDICIÓN --- */}
                 {newPolygon.length > 0 && (
                     <>
-                        {/* Usamos Polyline mientras dibujamos para evitar efecto visual de cierre prematuro */}
                         <Polyline positions={newPolygon} pathOptions={{ color: '#f59e0b', dashArray: '5, 10', weight: 2 }} />
-                        {/* Línea de cierre sugerida (visual) */}
-                        {newPolygon.length > 2 && <Polyline positions={[newPolygon[newPolygon.length -1], newPolygon[0]]} pathOptions={{ color: '#f59e0b', dashArray: '2, 5', weight: 1, opacity: 0.5 }} />}
+                        {newPolygon.length > 2 && <Polyline positions={[newPolygon[newPolygon.length - 1], newPolygon[0]]} pathOptions={{ color: '#f59e0b', dashArray: '2, 5', weight: 1, opacity: 0.5 }} />}
 
-                        {/* PUNTOS ARRASTRABLES */}
                         {newPolygon.map((pos, idx) => (
                             <DraggableMarker
                                 key={`p-${idx}`}
@@ -283,9 +271,8 @@ function App() {
                     </>
                 )}
 
-                {/* --- ZONAS GUARDADAS --- */}
                 {geofences.map((geo) => {
-                    if (geo.id === editingId) return null; // Ocultar si se está editando
+                    if (geo.id === editingId) return null;
                     return (
                         <Polygon key={geo.id} positions={geo.coordinates} pathOptions={{ color: '#FF5252', fillOpacity: 0.15, weight: 2 }}>
                             <Popup>
@@ -308,7 +295,6 @@ function App() {
                     );
                 })}
 
-                {/* Ruta y Autos */}
                 {selectedRoute.length > 0 && <Polyline positions={selectedRoute} pathOptions={{ color: '#F1C40F', weight: 5, opacity: 0.8, lineCap: 'round' }} />}
                 {drivers.map((driver) => (
                     <Marker key={driver.device_id} position={[driver.latitude, driver.longitude]} icon={createCarIcon(driver.heading || 0)} opacity={selectedId && selectedId !== driver.device_id ? 0.3 : 1} eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); fetchRoute(driver.device_id); } }}>
@@ -317,7 +303,6 @@ function App() {
                 ))}
             </MapContainer>
 
-            {/* UI ELEMENTS */}
             {toast && (
                 <div className="toast-message" style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 2000, background: toast.type === 'success' ? 'rgba(0, 230, 118, 0.9)' : 'rgba(255, 82, 82, 0.9)', color: 'white', padding: '12px 24px', borderRadius: '50px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '10px', backdropFilter: 'blur(5px)' }}>
                     {toast.type === 'success' ? '✅' : '❌'} {toast.msg}
@@ -325,9 +310,9 @@ function App() {
             )}
 
             <div style={{ position: 'absolute', top: 20, right: 60, zIndex: 1000, background: 'rgba(30, 30, 30, 0.9)', color: 'white', padding: '15px', borderRadius: '8px', backdropFilter: 'blur(5px)' }}>
-                <h3 style={{margin: '0 0 10px 0'}}>Geo Engine 🚀</h3>
-                <p style={{margin: '0 0 5px 0'}}>📡 Conexión: <span style={{color: '#2ECC71'}}>Activa</span></p>
-                <p style={{margin: 0}}>Conductores: <strong>{drivers.length}</strong> | Zonas: <strong>{geofences.length}</strong></p>
+                <h3 style={{ margin: '0 0 10px 0' }}>Geo Engine 🚀</h3>
+                <p style={{ margin: '0 0 5px 0' }}>📡 Conexión: <span style={{ color: '#2ECC71' }}>Activa</span></p>
+                <p style={{ margin: 0 }}>Conductores: <strong>{drivers.length}</strong> | Zonas: <strong>{geofences.length}</strong></p>
             </div>
 
             <div style={{ position: 'absolute', bottom: 30, right: 30, zIndex: 1000, display: 'flex', gap: '10px' }}>
@@ -349,7 +334,6 @@ function App() {
                 </div>
             )}
 
-            {/* MODAL */}
             {modal.show && (
                 <div className="modal-backdrop" style={{ position: 'absolute', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ background: 'rgba(30, 30, 40, 0.95)', padding: '30px', borderRadius: '16px', width: '350px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', color: 'white', textAlign: 'center' }}>
