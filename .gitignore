@@ -1,0 +1,11 @@
+backend/tmp/
+backend/bin/
+backend/main
+
+frontend/node_modules/
+frontend/dist/
+
+redis_data/
+postgres_data/
+
+.env

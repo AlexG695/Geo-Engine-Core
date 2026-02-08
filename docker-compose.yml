@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  api:
+    container_name: geo-engine-core
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app:Z
+    environment:
+      - PORT=8080
+      - ENV=development
+    networks:
+      - geo-net
+
+  db:
+    #image: docker.io/postgis/postgis:15-3.4
+    build:
+      context: ./backend
+      dockerfile: docker/postgres/Dockerfile
+    container_name: geo-postgres
+    environment:
+      POSTGRES_USER: geo
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: geoengine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - geo-net
+
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./backend/sql/schema:/migrations
+    command:
+      - -path=/migrations
+      - -database=postgres://geo:secretpassword@db:5432/geoengine?sslmode=disable
+      - up
+    depends_on:
+      db:
+        condition: service_healthy
+
+  dashboard:
+    image: node:22-alpine
+    container_name: geo-dashboard
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app:Z
+    command: npm run dev -- --host
+
+  redis:
+    image: redis:7-alpine
+    container_name: geo-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres-data:
+  redis_data:
+
+networks:
+  geo-net:
+    driver: bridge
