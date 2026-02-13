@@ -13,13 +13,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Create .env file from example
-      run: cp ./backend/.env.example .env
-
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.21'
+
+    - name: Create .env file from example
+      run: cp backend/.env.example backend/.env
 
     - name: Debug Docker Config
       run: docker compose config
