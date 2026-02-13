@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Polygon, useMapEvents
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { API_BASE_URL, WS_BASE_URL } from './config';
+import { API_BASE_URL, WS_BASE_URL, VITE_API_KEY } from './config';
 
 const styles = `
   @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
@@ -112,7 +112,7 @@ function App() {
 
     const fetchDrivers = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/drivers/nearby`, { params: { lat: centerPos[0], lng: centerPos[1], radius: 50000 } });
+            const res = await axios.get(`${API_BASE_URL}/drivers/nearby`, { headers: { 'X-Geo-Key': VITE_API_KEY }, params: { lat: centerPos[0], lng: centerPos[1], radius: 50000 } });
             setDrivers(res.data.data || []);
         } catch (error) { console.error(error); }
     };
@@ -120,7 +120,7 @@ function App() {
     const fetchRoute = async (deviceId: string) => {
         try {
             setSelectedId(deviceId);
-            const res = await axios.get(`${API_BASE_URL}/drivers/${deviceId}/route`);
+            const res = await axios.get(`${API_BASE_URL}/drivers/${deviceId}/route`, { headers: { 'X-Geo-Key': VITE_API_KEY } });
             const coords = res.data.coordinates.map((c: number[]) => [c[1], c[0]] as [number, number]);
             setSelectedRoute(coords);
         } catch (e) { setSelectedRoute([]); }
@@ -128,7 +128,7 @@ function App() {
 
     const fetchGeofences = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/geofences`);
+            const res = await axios.get(`${API_BASE_URL}/geofences`, { headers: { 'X-Geo-Key': VITE_API_KEY } });
             const parsed = res.data.map((z: any) => ({
                 ...z,
                 coordinates: JSON.parse(z.geojson).coordinates[0].map((c: number[]) => [c[1], c[0]])
@@ -169,7 +169,7 @@ function App() {
     const handleModalConfirm = async () => {
         if (modal.type === 'delete' && modal.id) {
             try {
-                await axios.delete(`${API_BASE_URL}/geofences/${modal.id}`);
+                await axios.delete(`${API_BASE_URL}/geofences/${modal.id}`, { headers: { 'X-Geo-Key': VITE_API_KEY } });
                 showToast("Zona eliminada", "success");
                 setModal({ show: false, type: null });
                 fetchGeofences();
@@ -185,7 +185,7 @@ function App() {
                 }
 
                 if (modal.type === 'create' && !editingId) {
-                    await axios.post(`${API_BASE_URL}/geofences`, { name: modalInput, geojson: geojsonPayload });
+                    await axios.post(`${API_BASE_URL}/geofences`, { name: modalInput, geojson: geojsonPayload }, { headers: { 'X-Geo-Key': VITE_API_KEY } } );
                     showToast("Zona creada", "success");
                     setNewPolygon([]); setIsDrawing(false);
                 } else {
@@ -193,7 +193,7 @@ function App() {
                     const payload: any = { name: modalInput };
                     if (geojsonPayload) payload.geojson = geojsonPayload;
 
-                    await axios.put(`${API_BASE_URL}/geofences/${idToUpdate}`, payload);
+                    await axios.put(`${API_BASE_URL}/geofences/${idToUpdate}`, payload, { headers: { 'X-Geo-Key': VITE_API_KEY } });
                     showToast("Zona actualizada", "success");
                     setNewPolygon([]); setIsDrawing(false); setEditingId(null);
                 }
@@ -221,7 +221,7 @@ function App() {
 
     useEffect(() => {
         fetchDrivers(); fetchGeofences();
-        const socket = new WebSocket(`${WS_BASE_URL}/ws`);
+        const socket = new WebSocket(`${WS_BASE_URL}?key=${VITE_API_KEY}`);
         socket.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);

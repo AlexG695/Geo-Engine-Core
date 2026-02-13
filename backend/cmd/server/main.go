@@ -3,31 +3,33 @@ package main
 import (
 	"context"
 	"database/sql"
-	"os"
 	"time"
 
+	"github.com/AlexG695/geo-engine-core/config"
+	"github.com/AlexG695/geo-engine-core/internal/database"
+	"github.com/AlexG695/geo-engine-core/internal/handlers"
+	"github.com/AlexG695/geo-engine-core/internal/middleware"
+	"github.com/AlexG695/geo-engine-core/internal/platform/logger"
 	"github.com/AlexG695/geo-engine-core/internal/ws"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
-
-	"github.com/AlexG695/geo-engine-core/internal/database"
-	"github.com/AlexG695/geo-engine-core/internal/handlers"
-	"github.com/gin-contrib/cors"
 )
 
 func main() {
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
-	sugar := logger.Sugar()
-
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "postgres://geo:secretpassword@db:5432/geoengine?sslmode=disable"
+	cfg := config.Load()
+	zapLog, err := logger.NewLogger(cfg.EnvMode)
+	if err != nil {
+		panic("No se pudo configurar el logger: " + err.Error())
 	}
+	defer zapLog.Sync()
+	sugar := zapLog.Sugar()
 
-	conn, err := sql.Open("pgx", dbURL)
+	r := gin.New()
+	r.Use(gin.Recovery())
+
+	conn, err := sql.Open("pgx", cfg.DBConnection)
 	if err != nil {
 		sugar.Fatal("No se pudo conectar a Postgres:", err)
 	}
@@ -39,7 +41,9 @@ func main() {
 	sugar.Info("Conectado a Postgres + PostGIS")
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "geo-redis:6379",
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+		DB:       0,
 	})
 
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
@@ -53,19 +57,24 @@ func main() {
 	go wsHub.Run()
 
 	queries := database.New(conn)
-	locationHandler := handlers.NewLocationHandler(queries, redisClient, sugar, wsHub)
-
-	r := gin.Default()
+	r = gin.Default()
+	r.Use(middleware.RequestLogger(zapLog))
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{cfg.AllowedOrigins},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Geo-Key", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "X-Request-ID"},
+		ExposeHeaders:    []string{"Content-Length", "X-Geo-Key", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "X-Request-ID"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
+	r.SetTrustedProxies(nil)
+	r.Use(middleware.IPFilter(redisClient))
+	r.Use(middleware.RateLimit(redisClient, "100-M"))
+	r.Use(middleware.APIKeyAuth(cfg.APISecret))
+
+	locationHandler := handlers.NewLocationHandler(queries, redisClient, sugar, wsHub)
 	locationHandler.RegisterRoutes(r)
 
 	r.GET("/health", func(c *gin.Context) {
